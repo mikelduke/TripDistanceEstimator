@@ -7,11 +7,14 @@
 
 //TODO Add saving markers to local storage or soemthing, could integrate with phpGPS
 //TODO Add total distance for google maps directions route
+//TODO Possible idea for overlaying multiple searches on top of the map, like for hotels or camping
+//TODO Use google maps Elevation service with directions results to get elevations on path, then sum the positive differences of each point and show total
+//TODO Change to use a new object to contain marker and circles[] instead of syncing two arrays
 
-var KM_TO_MI = 0.621371;
-var MI_TO_M = 1609.344;
-var MI_TO_KM = 1.609344;
-var MAX_WAYPTS_FOR_ROUTE = 6;
+const KM_TO_MI = 0.621371;
+const MI_TO_M = 1609.344;
+const MI_TO_KM = 1.609344;
+const MAX_WAYPTS_FOR_ROUTE = 6;
 
 var map;
 var directionsDisplays = new Array();
@@ -449,9 +452,10 @@ function createControls() {
 	
 	//RIGHT TOP
 	rightControlDiv = document.createElement('div');
-	createControl(rightControlDiv, map, "Get Directions", "Get Directions", function() {
+	var rightControlText = createControl(rightControlDiv, map, "Get Directions", "Get Directions", function() {
 		getDirections();
 	});
+	createModeSelectionControl(rightControlText, map);
 	
 	var rightControlDistanceDiv = document.createElement('div');
 	directionDistanceControlText = createControl(rightControlDistanceDiv, map, "Total Distance ", "Total Distance ", null);
@@ -474,6 +478,87 @@ function createControls() {
  * @returns {___anonymous7563_7573}
  */
 function createControl(controlDiv, map, title, text, func) {
+	var controlUI = createControlUI(title)
+	controlDiv.appendChild(controlUI);
+	
+	// Set CSS for the control interior.
+	var controlText = createControlItem('div', text);
+	controlUI.appendChild(controlText);
+	
+	if (func != undefined && func != null)
+		controlUI.addEventListener('click', func);
+	
+	return controlText;
+}
+
+function createModeSelectionControl(controlDiv, map) {
+	// Set CSS for the control interior.
+	var controlItem = createControlItem('select', '');
+	controlItem.style.paddingLeft = '5px';
+	controlItem.id = "mode";
+	controlDiv.appendChild(controlItem);
+	
+	var bikeMode = document.createElement('option');
+	bikeMode.value = "BICYCLING";
+	bikeMode.innerHTML = "Bicycling";
+	controlItem.appendChild(bikeMode);
+	
+	var driveMode = document.createElement('option');
+	driveMode.value = "DRIVING";
+	driveMode.innerHTML = "Driving";
+	controlItem.appendChild(driveMode);
+	
+	var walkMode = document.createElement('option');
+	walkMode.value = "WALKING";
+	walkMode.innerHTML = "Walking";
+	controlItem.appendChild(walkMode);
+}
+
+function createTopRightControls() {
+	rightControlDiv = document.createElement('div');
+	var controlUI = createControlUI('Get Directions');
+	rightControlDiv.appendChild(controlUI);
+	
+	// Set CSS for the control interior.
+	var controlText = createControlItem('div', 'Get Directions');
+	controlUI.appendChild(controlText);
+	
+	controlUI.addEventListener('click', getDirections());
+	createModeSelectionControl(rightControlDiv, map);
+	
+	var rightControlDistanceDiv = document.createElement('div');
+	directionDistanceControlText = createControl(rightControlDistanceDiv, map, "Total Distance ", "Total Distance ", null);
+	rightControlDiv.index = 1;
+	rightControlDistanceDiv.index = 1;
+	map.controls[google.maps.ControlPosition.RIGHT_TOP].push(rightControlDiv);
+	map.controls[google.maps.ControlPosition.RIGHT_TOP].push(rightControlDistanceDiv);
+	rightControlDistanceDiv.style.display = "none";
+	directionDistanceControl = rightControlDistanceDiv;
+}
+
+function setControlUIStyle(controlUI) {
+	controlUI.style.backgroundColor = '#fff';
+	controlUI.style.border = '2px solid #fff';
+	controlUI.style.borderRadius = '3px';
+	controlUI.style.boxShadow = '0 2px 6px rgba(0,0,0,.3)';
+	controlUI.style.cursor = 'pointer';
+	controlUI.style.marginBottom = '22px';
+	controlUI.style.textAlign = 'center';
+}
+
+function createControlItem(type, text) {
+	var controlText = document.createElement(type);
+	controlText.style.color = 'rgb(25,25,25)';
+	controlText.style.fontFamily = 'Roboto,Arial,sans-serif';
+	controlText.style.fontSize = '16px';
+	controlText.style.lineHeight = '38px';
+	controlText.style.paddingLeft = '5px';
+	controlText.style.paddingRight = '5px';
+	controlText.innerHTML = text;
+	return controlText;
+}
+
+function createControlUI(title) {
 	var controlUI = document.createElement('div');
 	controlUI.style.backgroundColor = '#fff';
 	controlUI.style.border = '2px solid #fff';
@@ -483,46 +568,16 @@ function createControl(controlDiv, map, title, text, func) {
 	controlUI.style.marginBottom = '22px';
 	controlUI.style.textAlign = 'center';
 	controlUI.title = title;
-	controlDiv.appendChild(controlUI);
 	
-	// Set CSS for the control interior.
-	var controlText = document.createElement('div');
-	controlText.style.color = 'rgb(25,25,25)';
-	controlText.style.fontFamily = 'Roboto,Arial,sans-serif';
-	controlText.style.fontSize = '16px';
-	controlText.style.lineHeight = '38px';
-	controlText.style.paddingLeft = '5px';
-	controlText.style.paddingRight = '5px';
-	controlText.innerHTML = text;
-	controlUI.appendChild(controlText);
-	
-	if (func != undefined && func != null)
-		controlUI.addEventListener('click', func);
-	
-	return controlText;
+	return controlUI;
 }
 
 function createCircleSizeControl(controlDiv, map) {
-	var controlUI = document.createElement('div');
-	controlUI.style.backgroundColor = '#fff';
-	controlUI.style.border = '2px solid #fff';
-	controlUI.style.borderRadius = '3px';
-	controlUI.style.boxShadow = '0 2px 6px rgba(0,0,0,.3)';
-	controlUI.style.cursor = 'pointer';
-	controlUI.style.marginBottom = '22px';
-	controlUI.style.textAlign = 'center';
-	controlUI.title = "Circle Radius";
+	var controlUI = createControlUI("Circle Radius");
 	controlDiv.appendChild(controlUI);
 	
 	// Set CSS for the control interior.
-	var controlText = document.createElement('div');
-	controlText.style.color = 'rgb(25,25,25)';
-	controlText.style.fontFamily = 'Roboto,Arial,sans-serif';
-	controlText.style.fontSize = '16px';
-	controlText.style.lineHeight = '38px';
-	controlText.style.paddingLeft = '5px';
-	controlText.style.paddingRight = '5px';
-	controlText.innerHTML = "Circle Radius";
+	var controlText = createControlItem('div', 'Circle Radius');
 	controlUI.appendChild(controlText);
 	
 	var circleSizeSlider = document.createElement("INPUT");
@@ -556,26 +611,11 @@ function createCircleSizeControl(controlDiv, map) {
 }
 
 function createCircleNumControl(controlDiv, map) {
-	var controlUI = document.createElement('div');
-	controlUI.style.backgroundColor = '#fff';
-	controlUI.style.border = '2px solid #fff';
-	controlUI.style.borderRadius = '3px';
-	controlUI.style.boxShadow = '0 2px 6px rgba(0,0,0,.3)';
-	controlUI.style.cursor = 'pointer';
-	controlUI.style.marginBottom = '22px';
-	controlUI.style.textAlign = 'center';
-	controlUI.title = "Number of Circles";
+	var controlUI = createControlUI("Number of Circles");
 	controlDiv.appendChild(controlUI);
 	
 	// Set CSS for the control interior.
-	var controlText = document.createElement('div');
-	controlText.style.color = 'rgb(25,25,25)';
-	controlText.style.fontFamily = 'Roboto,Arial,sans-serif';
-	controlText.style.fontSize = '16px';
-	controlText.style.lineHeight = '38px';
-	controlText.style.paddingLeft = '5px';
-	controlText.style.paddingRight = '5px';
-	controlText.innerHTML = "Number of Circles";
+	var controlText = createControlItem('div', 'Number of Circles');
 	controlUI.appendChild(controlText);
 	
 	var circleNumSlider = document.createElement("INPUT");
@@ -609,26 +649,11 @@ function createCircleNumControl(controlDiv, map) {
 }
 
 function createCBControl(controlDiv, map, title, name, id, defaultValue, func) {
-	var controlUI = document.createElement('div');
-	controlUI.style.backgroundColor = '#fff';
-	controlUI.style.border = '2px solid #fff';
-	controlUI.style.borderRadius = '3px';
-	controlUI.style.boxShadow = '0 2px 6px rgba(0,0,0,.3)';
-	controlUI.style.cursor = 'pointer';
-	controlUI.style.marginBottom = '22px';
-	controlUI.style.textAlign = 'center';
-	controlUI.title = title;
+	var controlUI = createControlUI(title);
 	controlDiv.appendChild(controlUI);
 	
 	// Set CSS for the control interior.
-	var controlText = document.createElement('label');
-	controlText.style.color = 'rgb(25,25,25)';
-	controlText.style.fontFamily = 'Roboto,Arial,sans-serif';
-	controlText.style.fontSize = '16px';
-	controlText.style.lineHeight = '38px';
-	controlText.style.paddingLeft = '5px';
-	controlText.style.paddingRight = '5px';
-	controlText.innerHTML = name;
+	var controlText = createControlItem('label', name); 
 	controlUI.appendChild(controlText);
 	
 	var newCBControl = document.createElement("INPUT");
@@ -652,41 +677,20 @@ function createCBControl(controlDiv, map, title, name, id, defaultValue, func) {
 }
 
 function createRBControl(controlDiv, map, title, name, id, defaultValue, valuesAr, func) {
-	var controlUI = document.createElement('div');
-	controlUI.style.backgroundColor = '#fff';
-	controlUI.style.border = '2px solid #fff';
-	controlUI.style.borderRadius = '3px';
-	controlUI.style.boxShadow = '0 2px 6px rgba(0,0,0,.3)';
-	controlUI.style.cursor = 'pointer';
-	controlUI.style.marginBottom = '22px';
-	controlUI.style.textAlign = 'center';
-	controlUI.title = title;
+	var controlUI = createControlUI(title);
 	controlDiv.appendChild(controlUI);
 	
 	for (var i = 0; i < valuesAr.length; i++) {
-		var newRBControl = document.createElement("INPUT");
+		var newRBControl = createControlItem('INPUT', '');
 		newRBControl.setAttribute("type", "radio");
 		newRBControl.setAttribute("id", id);
 		newRBControl.setAttribute("name", id);
 		newRBControl.setAttribute("value", valuesAr[i]);
-		newRBControl.style.color = 'rgb(25,25,25)';
-		newRBControl.style.fontFamily = 'Roboto,Arial,sans-serif';
-		newRBControl.style.fontSize = '16px';
-		newRBControl.style.lineHeight = '38px';
-		newRBControl.style.paddingLeft = '5px';
-		newRBControl.style.paddingRight = '5px';
 		
 		if (valuesAr[i] == defaultValue) newRBControl.checked = true;
 		
-		var newLabel = document.createElement("label");
+		var newLabel = createControlItem('label', valuesAr[i]);
 		newLabel.labelFor = newRBControl;
-		newLabel.innerHTML = valuesAr[i];
-		newLabel.style.color = 'rgb(25,25,25)';
-		newLabel.style.fontFamily = 'Roboto,Arial,sans-serif';
-		newLabel.style.fontSize = '16px';
-		newLabel.style.lineHeight = '38px';
-		newLabel.style.paddingLeft = '5px';
-		newLabel.style.paddingRight = '5px';
 		
 		controlUI.appendChild(newRBControl);
 		controlUI.appendChild(newLabel);
@@ -734,7 +738,7 @@ function calculateAndDisplayRoute(directionsDisplays, directionsService, stepDis
 		if (start != null && end != null) {
 			directionsService.route({origin: start.position,
 				destination: end.position,
-				travelMode: google.maps.TravelMode.BICYCLING}, //TODO Add Mode Changing
+				travelMode: document.getElementById('mode').value},
 				function(response, status) {
 					computeTotalDistance(response);
 				// Route the directions and pass the response to a function to create
@@ -795,6 +799,8 @@ function activeMarkers() {
 }
 
 function computeTotalDistance(result) {
+	if (result == null) return;
+	
 	var total = 0;
 	var myroute = result.routes[0];
 	for (var i = 0; i < myroute.legs.length; i++) {
