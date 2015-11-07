@@ -31,9 +31,3 @@ Click the Get Directions button in the top right corner if it is visible to have
 Click the Clear Map button to start over.
 
 For actual turn by turn directions, it is recommended to use the regular Google Maps app.
-
-Currently only bicycling directions are provided.
-
-##Coming Soon
-- Support for more types of directions
-- Saving markers

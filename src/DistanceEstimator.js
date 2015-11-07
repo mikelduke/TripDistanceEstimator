@@ -514,38 +514,6 @@ function createModeSelectionControl(controlDiv, map) {
 	controlItem.appendChild(walkMode);
 }
 
-function createTopRightControls() {
-	rightControlDiv = document.createElement('div');
-	var controlUI = createControlUI('Get Directions');
-	rightControlDiv.appendChild(controlUI);
-	
-	// Set CSS for the control interior.
-	var controlText = createControlItem('div', 'Get Directions');
-	controlUI.appendChild(controlText);
-	
-	controlUI.addEventListener('click', getDirections());
-	createModeSelectionControl(rightControlDiv, map);
-	
-	var rightControlDistanceDiv = document.createElement('div');
-	directionDistanceControlText = createControl(rightControlDistanceDiv, map, "Total Distance ", "Total Distance ", null);
-	rightControlDiv.index = 1;
-	rightControlDistanceDiv.index = 1;
-	map.controls[google.maps.ControlPosition.RIGHT_TOP].push(rightControlDiv);
-	map.controls[google.maps.ControlPosition.RIGHT_TOP].push(rightControlDistanceDiv);
-	rightControlDistanceDiv.style.display = "none";
-	directionDistanceControl = rightControlDistanceDiv;
-}
-
-function setControlUIStyle(controlUI) {
-	controlUI.style.backgroundColor = '#fff';
-	controlUI.style.border = '2px solid #fff';
-	controlUI.style.borderRadius = '3px';
-	controlUI.style.boxShadow = '0 2px 6px rgba(0,0,0,.3)';
-	controlUI.style.cursor = 'pointer';
-	controlUI.style.marginBottom = '22px';
-	controlUI.style.textAlign = 'center';
-}
-
 function createControlItem(type, text) {
 	var controlText = document.createElement(type);
 	controlText.style.color = 'rgb(25,25,25)';
@@ -586,12 +554,6 @@ function createCircleSizeControl(controlDiv, map) {
 	circleSizeSlider.setAttribute("min", 1);
 	circleSizeSlider.setAttribute("max", 100);
 	circleSizeSlider.setAttribute("value", circleSize);
-	circleSizeSlider.style.color = 'rgb(25,25,25)';
-	circleSizeSlider.style.fontFamily = 'Roboto,Arial,sans-serif';
-	circleSizeSlider.style.fontSize = '16px';
-	circleSizeSlider.style.lineHeight = '38px';
-	circleSizeSlider.style.paddingLeft = '5px';
-	circleSizeSlider.style.paddingRight = '5px';
 	controlUI.appendChild(circleSizeSlider);
 	
 	function sliderUpdate() {
@@ -624,12 +586,6 @@ function createCircleNumControl(controlDiv, map) {
 	circleNumSlider.setAttribute("min", 0);
 	circleNumSlider.setAttribute("max", 5);
 	circleNumSlider.setAttribute("value", numOfCircles);
-	circleNumSlider.style.color = 'rgb(25,25,25)';
-	circleNumSlider.style.fontFamily = 'Roboto,Arial,sans-serif';
-	circleNumSlider.style.fontSize = '16px';
-	circleNumSlider.style.lineHeight = '38px';
-	circleNumSlider.style.paddingLeft = '5px';
-	circleNumSlider.style.paddingRight = '5px';
 	controlUI.appendChild(circleNumSlider);
 	
 	function sliderNumUpdate() {
@@ -656,15 +612,9 @@ function createCBControl(controlDiv, map, title, name, id, defaultValue, func) {
 	var controlText = createControlItem('label', name); 
 	controlUI.appendChild(controlText);
 	
-	var newCBControl = document.createElement("INPUT");
+	var newCBControl = createControlItem('INPUT', '');
 	newCBControl.setAttribute("type", "checkbox");
 	newCBControl.setAttribute("id", id);
-	newCBControl.style.color = 'rgb(25,25,25)';
-	newCBControl.style.fontFamily = 'Roboto,Arial,sans-serif';
-	newCBControl.style.fontSize = '16px';
-	newCBControl.style.lineHeight = '38px';
-	newCBControl.style.paddingLeft = '5px';
-	newCBControl.style.paddingRight = '5px';
 	newCBControl.checked = defaultValue;
 	controlUI.appendChild(newCBControl);
 	
