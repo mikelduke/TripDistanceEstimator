@@ -18,6 +18,8 @@ const KM_TO_MI = 0.621371;
 const MI_TO_M = 1609.344;
 const MI_TO_KM = 1.609344;
 const MAX_WAYPTS_FOR_ROUTE = 10;
+const DEFAULT_STROKE_COLOR = '#0000FF';
+const HIDDEN_STROKE_COLOR = 'rgba(0,0,0,0)';
 
 var map;
 var directionsDisplay = null;
@@ -34,6 +36,8 @@ var directionDistanceControl;
 var directionDistanceControlText;
 var rightControlDiv;
 var directionsDistance = 0;
+var strokeColor = DEFAULT_STROKE_COLOR;
+var prevStrokeColor = true;
 
 function load() {
 	var center = new google.maps.LatLng(41.988308,-99.483202);
@@ -56,6 +60,15 @@ function load() {
 		}
 		if (localStorage.numOfCircles) numOfCircles = localStorage.numOfCircles;
 		if (localStorage.circleSize) circleSize = localStorage.circleSize;
+		if (localStorage.prevStrokeColor) {
+			if (localStorage.prevStrokeColor == true || localStorage.prevStrokeColor == "true") {
+				prevStrokeColor = true;
+				strokeColor = DEFAULT_STROKE_COLOR;
+			} else {
+				prevStrokeColor = false;
+				strokeColor = HIDDEN_STROKE_COLOR;
+			}
+		}
 		if (localStorage.prevCirclesHidden) {
 			if (localStorage.prevCirclesHidden == true || localStorage.prevCirclesHidden == "true")
 				prevCirclesHidden = true;
@@ -87,7 +100,7 @@ function load() {
 		}, 200);
 	});
 	
-	google.maps.event.addListener(map, 'dblclick', function(event) {       
+	google.maps.event.addListener(map, 'dblclick', function(event) {
 		clearTimeout(updateTimeout);
 	});
 	
@@ -348,7 +361,7 @@ function drawPath() {
 		path = new google.maps.Polyline({
 			path: pathCoords,
 			geodesic: true,
-			strokeColor: '#0000FF',
+			strokeColor: strokeColor,
 			strokeOpacity: 1.0,
 			strokeWeight: 2
 		});
@@ -380,6 +393,16 @@ function clearPath() {
 function redrawPath() {
 	clearPath();
 	drawPath();
+}
+
+function togglePath() {
+	if (path != undefined && path != null) {
+		var newStrokeColor = prevStrokeColor ? DEFAULT_STROKE_COLOR : HIDDEN_STROKE_COLOR;
+
+		path.set('strokeColor', newStrokeColor);
+
+		return newStrokeColor;
+	}
 }
 
 function calcPathDistance() {
@@ -421,6 +444,20 @@ function createControls() {
 	bottomLeftControlDiv.appendChild(bottomLeftControlUI);
 	createCircleSizeControl(bottomLeftControlUI, map);
 	createCircleNumControl(bottomLeftControlUI, map);
+	bottomLeftControlUI.appendChild(document.createElement("BR"));
+	createCBControl(bottomLeftControlUI, map, "Toggle Direct Path",
+			"Toggle Direct Path", "togglePath", prevStrokeColor, function() {
+		if(prevStrokeColor) {
+			prevStrokeColor = false;
+		} else {
+			prevStrokeColor = true;
+		}
+		togglePath();
+
+		if(typeof(Storage) !== "undefined") {
+			localStorage.prevStrokeColor = prevStrokeColor + "";
+		}
+	});
 	bottomLeftControlUI.appendChild(document.createElement("BR"));
 	createCBControl(bottomLeftControlUI, map, "Hide Previous Circles", 
 			"Hide Previous Circles", "prevCircleCB", prevCirclesHidden, function() {
