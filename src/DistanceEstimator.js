@@ -1,8 +1,11 @@
 /**
  * DistanceEstimator.js
  * 
- * Used for trip distance estimation and planning. This is used to draw 
- * circles around markers at various distances.
+ * Used for trip distance estimation and planning. 
+ * 
+ * http://www.mikelduke.com/TripDistanceEstimator/
+ * https://github.com/mikelduke/TripDistanceEstimator
+ * 
  */
 
 //TODO Add saving markers to local storage or soemthing, could integrate with phpGPS
@@ -14,10 +17,10 @@
 const KM_TO_MI = 0.621371;
 const MI_TO_M = 1609.344;
 const MI_TO_KM = 1.609344;
-const MAX_WAYPTS_FOR_ROUTE = 6;
+const MAX_WAYPTS_FOR_ROUTE = 10;
 
 var map;
-var directionsDisplays = new Array();
+var directionsDisplay = null;
 var markers = [];
 var circles = [];
 var path;
@@ -196,12 +199,9 @@ function clearMap() {
 }
 
 function clearDirections() {
-	if (directionsDisplays != undefined && directionsDisplays != null) {
-		for (var i = 0; i < directionsDisplays.length; i++) {
-			directionsDisplays[i].setMap(null);
-			directionsDisplays[i] = null;
-		}
-		directionsDisplays = [];
+	if (directionsDisplay != undefined && directionsDisplay != null) {
+		directionsDisplay.setMap(null);
+		directionsDisplay = null;
 	}
 	
 	directionDistanceControl.style.display = "none";
@@ -397,29 +397,32 @@ function calcPathDistance() {
  */
 function createControls() {
 	//BOTTOM CENTER
-	var clearControlDiv = document.createElement('div');
-	createControl(clearControlDiv, map, "Click to Clear map", "Clear Map", function() {
+	var bottomCenterControlDiv = document.createElement('div');
+	createControl(bottomCenterControlDiv, map, "Click to Clear map", "Clear Map", function() {
 		clearMap();
 	});
-	clearControlDiv.index = 1;
-	map.controls[google.maps.ControlPosition.BOTTOM_CENTER].push(clearControlDiv);
+	bottomCenterControlDiv.index = 1;
+	map.controls[google.maps.ControlPosition.BOTTOM_CENTER].push(bottomCenterControlDiv);
 	//TODO Add Save
 	
 	//TOP CENTER
-	var distDispDiv = document.createElement('div');
+	var topCenterDiv = document.createElement('div');
 	if (isKM) {
-		distanceDisplay = createControl(distDispDiv, map, "Path Distance", "0.00 KM", null);
+		distanceDisplay = createControl(topCenterDiv, map, "Path Distance", "0.00 KM", null);
 	} else {
-		distanceDisplay = createControl(distDispDiv, map, "Path Distance", "0.00 Mi", null);
+		distanceDisplay = createControl(topCenterDiv, map, "Path Distance", "0.00 Mi", null);
 	}
-	distDispDiv.index = 1;
-	map.controls[google.maps.ControlPosition.TOP_CENTER].push(distDispDiv);
+	topCenterDiv.index = 1;
+	map.controls[google.maps.ControlPosition.TOP_CENTER].push(topCenterDiv);
 	
 	//LEFT BOTTOM
-	var createCircleSizeControlDiv = document.createElement('div');
-	createCircleSizeControl(createCircleSizeControlDiv, map);
-	createCircleNumControl(createCircleSizeControlDiv, map);
-	createCBControl(createCircleSizeControlDiv, map, "Hide Previous Circles", 
+	var bottomLeftControlDiv = document.createElement('div');
+	var bottomLeftControlUI = createControlUI("");
+	bottomLeftControlDiv.appendChild(bottomLeftControlUI);
+	createCircleSizeControl(bottomLeftControlUI, map);
+	createCircleNumControl(bottomLeftControlUI, map);
+	bottomLeftControlUI.appendChild(document.createElement("BR"));
+	createCBControl(bottomLeftControlUI, map, "Hide Previous Circles", 
 			"Hide Previous Circles", "prevCircleCB", prevCirclesHidden, function() {
 		if (prevCircleCB.checked) {
 			prevCirclesHidden = true;
@@ -433,9 +436,10 @@ function createControls() {
 			localStorage.prevCirclesHidden = prevCirclesHidden + "";
 		}
 	});
+	bottomLeftControlUI.appendChild(document.createElement("BR"));
 	var defaultMiOrKm = "KM";
 	if (!isKM) defaultMiOrKm = "Miles";
-	createRBControl(createCircleSizeControlDiv, map, "Miles or KM", "Miles or KM", 
+	createRBControl(bottomLeftControlUI, map, "Miles or KM", "Miles or KM", 
 			"MIKM", defaultMiOrKm, ["Miles", "KM"], function() {
 		var isKMValue = !document.getElementById("MIKM").checked;
 		isKM = isKMValue;
@@ -447,8 +451,8 @@ function createControls() {
 		redrawCircles();
 		redrawPath();
 	});
-	createCircleSizeControlDiv.index = 1;
-	map.controls[google.maps.ControlPosition.LEFT_BOTTOM].push(createCircleSizeControlDiv);
+	bottomLeftControlDiv.index = 1;
+	map.controls[google.maps.ControlPosition.LEFT_BOTTOM].push(bottomLeftControlDiv);
 	
 	//RIGHT TOP
 	rightControlDiv = document.createElement('div');
@@ -541,12 +545,9 @@ function createControlUI(title) {
 }
 
 function createCircleSizeControl(controlDiv, map) {
-	var controlUI = createControlUI("Circle Radius");
-	controlDiv.appendChild(controlUI);
-	
 	// Set CSS for the control interior.
 	var controlText = createControlItem('div', 'Circle Radius');
-	controlUI.appendChild(controlText);
+	controlDiv.appendChild(controlText);
 	
 	var circleSizeSlider = document.createElement("INPUT");
 	circleSizeSlider.setAttribute("type", "range");
@@ -554,7 +555,7 @@ function createCircleSizeControl(controlDiv, map) {
 	circleSizeSlider.setAttribute("min", 1);
 	circleSizeSlider.setAttribute("max", 100);
 	circleSizeSlider.setAttribute("value", circleSize);
-	controlUI.appendChild(circleSizeSlider);
+	controlDiv.appendChild(circleSizeSlider);
 	
 	function sliderUpdate() {
 		circleSize = circleSizeSlider.value;
@@ -573,12 +574,9 @@ function createCircleSizeControl(controlDiv, map) {
 }
 
 function createCircleNumControl(controlDiv, map) {
-	var controlUI = createControlUI("Number of Circles");
-	controlDiv.appendChild(controlUI);
-	
 	// Set CSS for the control interior.
 	var controlText = createControlItem('div', 'Number of Circles');
-	controlUI.appendChild(controlText);
+	controlDiv.appendChild(controlText);
 	
 	var circleNumSlider = document.createElement("INPUT");
 	circleNumSlider.setAttribute("type", "range");
@@ -586,7 +584,7 @@ function createCircleNumControl(controlDiv, map) {
 	circleNumSlider.setAttribute("min", 0);
 	circleNumSlider.setAttribute("max", 5);
 	circleNumSlider.setAttribute("value", numOfCircles);
-	controlUI.appendChild(circleNumSlider);
+	controlDiv.appendChild(circleNumSlider);
 	
 	function sliderNumUpdate() {
 		numOfCircles = circleNumSlider.value;
@@ -605,18 +603,15 @@ function createCircleNumControl(controlDiv, map) {
 }
 
 function createCBControl(controlDiv, map, title, name, id, defaultValue, func) {
-	var controlUI = createControlUI(title);
-	controlDiv.appendChild(controlUI);
-	
 	// Set CSS for the control interior.
 	var controlText = createControlItem('label', name); 
-	controlUI.appendChild(controlText);
+	controlDiv.appendChild(controlText);
 	
 	var newCBControl = createControlItem('INPUT', '');
 	newCBControl.setAttribute("type", "checkbox");
 	newCBControl.setAttribute("id", id);
 	newCBControl.checked = defaultValue;
-	controlUI.appendChild(newCBControl);
+	controlDiv.appendChild(newCBControl);
 	
 	controlText.labelFor = newCBControl;
 	
@@ -627,9 +622,6 @@ function createCBControl(controlDiv, map, title, name, id, defaultValue, func) {
 }
 
 function createRBControl(controlDiv, map, title, name, id, defaultValue, valuesAr, func) {
-	var controlUI = createControlUI(title);
-	controlDiv.appendChild(controlUI);
-	
 	for (var i = 0; i < valuesAr.length; i++) {
 		var newRBControl = createControlItem('INPUT', '');
 		newRBControl.setAttribute("type", "radio");
@@ -642,8 +634,8 @@ function createRBControl(controlDiv, map, title, name, id, defaultValue, valuesA
 		var newLabel = createControlItem('label', valuesAr[i]);
 		newLabel.labelFor = newRBControl;
 		
-		controlUI.appendChild(newRBControl);
-		controlUI.appendChild(newLabel);
+		controlDiv.appendChild(newRBControl);
+		controlDiv.appendChild(newLabel);
 		
 		if (func != undefined && func != null)
 			newRBControl.addEventListener('change', func);
@@ -666,44 +658,71 @@ function getDirections() {
 	var stepDisplay = new google.maps.InfoWindow;
 	
 	// Display the route between the initial start and end selections.
-	calculateAndDisplayRoute(directionsDisplays, directionsService, stepDisplay, map);
+	calculateAndDisplayRoute(directionsService, stepDisplay, map);
 	directionDistanceControl.style.display = "";
 }
 
-function calculateAndDisplayRoute(directionsDisplays, directionsService, stepDisplay, map) {
+function calculateAndDisplayRoute(directionsService, stepDisplay, map) {
 	if (markers.length < 2) return;
 	directionsDistance = 0;
 	
 	// Retrieve the start and end locations and create a DirectionsRequest using
-	for (var i = 0; i < markers.length - 1; i--) {
-		var start = null;
-		var end = null;
-		while ((start == null || start == undefined) && i < markers.length - 1) {
-			start = markers[i++];
+	var start = null;
+	var end = null;
+	var wayPoints = new Array();
+	var startInd = 0;
+	var endInd = -1;
+	
+	//Find start
+	var i = 0;
+	while (start == null && i < markers.length) {
+		if (markers[i] != undefined && markers[i] != null) {
+			start = markers[i];
+			startInd = i;
 		}
-		while ((end == null || end == undefined) && i < markers.length) {
-			end = markers[i++];
+		i++;
+	}
+	
+	//Find end
+	i = markers.length - 1;
+	while (end == null && i > startInd) {
+		if (markers[i] != undefined && markers[i] != null) {
+			end = markers[i];
+			endInd = i;
 		}
-		
-		if (start != null && end != null) {
-			directionsService.route({origin: start.position,
-				destination: end.position,
-				travelMode: document.getElementById('mode').value},
-				function(response, status) {
-					computeTotalDistance(response);
-				// Route the directions and pass the response to a function to create
-				// markers for each step.
-				if (status === google.maps.DirectionsStatus.OK) {
-					var display = new google.maps.DirectionsRenderer({map: map, preserveViewport: true});
-					display.setDirections(response);
-					directionsDisplays.push(display);
-				} else {
-					window.alert('Directions request failed due to ' + status);
-				}
-			});
-		} else {
-			return;
+		i--;
+	}
+	
+	//Fill waypoints array
+	if (endInd - startInd > 1) {
+		for (var j = startInd + 1; j < endInd; j++) {
+			if (markers[j] != undefined && markers[j] != null) {
+				//push valid markers in to waypoint array
+				var wp = {location: markers[j].position};
+				wayPoints.push(wp);
+			}
 		}
+	}
+	
+	if (start != null && end != null) {
+		directionsService.route({origin: start.position,
+			destination: end.position,
+			waypoints: wayPoints,
+			travelMode: document.getElementById('mode').value},
+			function(response, status) {
+				computeTotalDistance(response);
+			// Route the directions and pass the response to a function to create
+			// markers for each step.
+			if (status === google.maps.DirectionsStatus.OK) {
+				var display = new google.maps.DirectionsRenderer({map: map, preserveViewport: true});
+				display.setDirections(response);
+				directionsDisplay = display;
+			} else {
+				window.alert('Directions request failed due to ' + status);
+			}
+		});
+	} else {
+		return;
 	}
 }
 
