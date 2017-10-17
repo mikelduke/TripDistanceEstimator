@@ -1,6 +1,9 @@
 # TripDistanceEstimator
 A Javascript Google Maps app to help with planning trips and estimating trip distances
 
+## Try it out
+Now hosted on Github Pages https://mikelduke.github.io/TripDistanceEstimator/
+
 ##Features
 - Left click to add markers
 - Right click to remove
